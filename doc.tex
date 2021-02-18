@@ -1,0 +1,229 @@
+% Compilation: lualatex doc.tex && lualatex doc.tex
+\documentclass[b5j,titlepage]{ltjsarticle}
+
+\usepackage{listings}
+\usepackage{jvlisting}
+\usepackage{datetime2}
+\usepackage{hyperref}
+
+\title{自分による自分のための \\ ARM64環境への移行ガイド}
+\author{20100074}
+\date{最終更新: \DTMnow}
+
+\pagestyle{headings}
+
+\lstset{
+	numbers=left,
+	tabsize=2,
+	xleftmargin=0pt,
+	framexleftmargin=0pt,
+	frame=single,
+	breaklines=true,
+	basicstyle=\ttfamily,
+	commentstyle=\ttfamily
+}
+
+\setcounter{tocdepth}{3}
+
+\begin{document}
+	\maketitle
+
+	\tableofcontents
+
+	\clearpage
+
+	\section{初期設定}
+		% 普通にセットアップする。
+		% softwareupdateで最新版まで更新
+		電源を入れたら，ガイドに従って設定をする。
+
+		デスクトップが表示されたら，\texttt{softwareupdate}コマンドで最新版のmacOSまでアップデートする。
+
+		\begin{lstlisting}[language=bash]
+	sudo softwareupdate --list --all --verbose
+	sudo softwareupdate --install --all --agree-to-license \ 
+		--restart --verbose
+		\end{lstlisting}
+
+	\clearpage
+
+	\section{Homebrewとソフトウェア群のインストール}
+		\subsection{Homebrewのインストール}
+			% xcode-select
+			\begin{lstlisting}
+	sudo xcode-select --install
+			\end{lstlisting}
+			% Rosetta 2
+			\begin{lstlisting}
+	sudo softwareupdate --install-rosetta --agree-to-license
+			\end{lstlisting}
+			% Homebrew -> /opt/Homebrew
+			\begin{lstlisting}
+	/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+			\end{lstlisting}
+		
+		\subsection{ソフトウェア群の自動インストール}
+			Intel\ Macと同様，\texttt{brew\ install}と\texttt{brew\ install\ --cask}を用いてソフトウェアをインストールしてゆく。
+			% このあたりでjlistings環境を呼び出す
+
+			その前に，Homebrewをアップデートしておく。
+				\begin{lstlisting}
+	brew update
+				\end{lstlisting}
+
+			\subsubsection{コマンドラインツールのインストール}
+				\begin{lstlisting}
+	brew install \ 
+		fish vim aria2 bat bash cmake coreutils exa exiftool pv \ 
+		ffmpeg gawk gcal gnu-sed gnu-tar grep inetutils iperf jq \ 
+		less ldid make mp4v2 neofetch neovim nkf parallel git curl \ 
+		pinentry-mac smartmontools wget xz youtube-dl \ 
+		terminal-notifier rsync gnupg pandoc tmux #wine-crossover
+				\end{lstlisting}
+
+			\subsubsection{GUIツールのインストール}
+				\begin{lstlisting}
+
+	brew install --cask \ 
+		1password alacritty amethyst google-chrome iterm2 \ # mactex 
+		keepingyouawake skim protonmail-bridge vlc xquartz keka
+
+\end{lstlisting}
+
+		\subsection{手動でインストールするソフトウェア}
+			\subsubsection{プリンタドライバ}
+				2021年2月現在，家のプリンタはNECのColor\ MultiWriter\ 5800Cである。このプリンタをM1\ Macで動作させるためには，ドライバを手動でインストールする必要がある。
+
+				M1対応ドライバは，\protect\url{https://jpn.nec.com/printer/laser/download/driver/color/5800c.html}からダウンロード\footnote{直リン:\ \protect\url{http://search.casnavi.nec.co.jp/printer/module/3835/ncmacopsprnstd2012bm107cml.dmg}}できる。
+
+			\subsubsection{Retroactive}
+				Appleは，macOS\ 10.15\ Catalinaにおいて，iTunesを廃止した。それゆえ，Catalina以降のmacOSではiTunesは動作しない。
+
+				Retroactiveを使用すれば，このような状況の中でも，従来のバージョンのiTunesを最新のmacOSで動作させることができる。
+
+				Retroactiveは，\protect\url{https://github.com/cormiertyshawn895/Retroactive/releases}からダウンロード\footnote{直リン:\ \protect\url{https://github.com/cormiertyshawn895/Retroactive/releases/download/1.9/Retroactive.1.9.zip}}できる。
+
+			\subsubsection{MacTeX\ 2020\ Universal\ Binary}
+				Homebrew\ caskで配布されているMacTeXはx86\_64向けバイナリであるため，こちら(\protect\url{http://www.tug.org/mactex/MacTeX-2020-Universal.pkg})を使用する。
+
+			\subsubsection{Scansnap\ Home\ (Optional)}
+				あまり頻繁には使用しないのでインストールしなくても良いかな，と思っているので，Optional。
+
+				必要ならばここ(\protect\url{http://scansnap.fujitsu.com/jp/dl/mac-1100-ix500.html})からダウンロードできるようだが，Apple\ Silicon搭載MacではUSB経由でのスキャンに不具合があるらしい\footnote{更新予定はあるものの，具体的な更新日は未定のよう。}。
+
+	\clearpage
+
+	\section{OSの設定}
+		\subsection{CUIでの設定}
+			\subsubsection{\texttt{sudo}をTouchID対応にする}
+				以下のコマンドを使用すれば，\texttt{sudo}をTouchIDで認証できる。
+
+				もっとも，SSHでM1\ Macにログインした時に，\texttt{sudo}が使えなくなる可能性がある。
+
+				\begin{lstlisting}[language=bash]
+	# Desktopにcpした上でsudoeditで変更したほうがよいかも。
+	# cp /etc/pam.d/sudo ~/Desktop/
+	echo 'auth sufficient pam_tid.so' | sudo tee -a /etc/pam.d/sudo
+				\end{lstlisting}
+
+			\subsubsection{ホストネームの設定}
+				% hostnameはAmethyst.localにするつもり。
+				以下のコマンドを実行することにより，M1\ Macのホスト名(Bonjourで名前解決が可能)が\texttt{Amethyst.local}となる。
+
+				\begin{lstlisting}[language=bash]
+	sudo hostname Amethyst.local
+				\end{lstlisting}
+
+			\subsubsection{\texttt{fish}をデフォルトのシェルにする}
+				以下のコマンドを実行することにより，\texttt{fish}がデフォルトのシェルとなる。
+
+				\begin{lstlisting}[language=bash]
+	# which fish
+	# echo '/opt/homebrew/bin/fish' | sudo tee -a /etc/shells
+	chsh -s $(which fish) -u $(whoami)
+				\end{lstlisting}
+
+			\subsubsection{\texttt{PATH}環境変数の編集}
+				\begin{lstlisting}
+	export PATH=/opt/homebrew/bin:$PATH
+	# LaTeXについては以下のどちらか
+	export PATH=/usr/local/texlive/2020/bin/arm64-darwin:$PATH
+	export PATH=/usr/local/texlive/2020/bin/custom:$PATH
+				\end{lstlisting}
+
+		\subsection{GUIでの設定}
+			\subsubsection{修飾キーの設定}
+				以下のようにキーを入れ替える\footnote{\protect\url{file:///System/Library/PreferencePanes/Keyboard.prefPane}}。
+
+				\begin{itemize}
+					\item{\texttt{Caps\ Lock}を\texttt{Command}へ}
+					\item{\texttt{Control}を\texttt{Caps\ Lock}へ}
+					\item{\texttt{Command}を\texttt{Control}へ}
+				\end{itemize}
+
+			\subsubsection{SSHサーバーの有効化}
+				「システム環境設定」内の「共有」で「リモートログイン」を有効化する\footnote{\protect\url{file:///System/Library/PreferencePanes/SharingPref.prefPane}}。
+
+			\subsubsection{1920*1200の擬似解像度を有効化}
+				詳しくは\protect\url{https://fantastic-works.com/archives/3154}を参照。
+
+			\subsubsection{トラックパッドの設定}
+				右クリックやダブルクリックなどの設定を「システム環境設定」で行う\footnote{\protect\url{file:///System/Library/PreferencePanes/Trackpad.prefPane}}。
+
+			\subsubsection{バッテリーの残量表示}
+				「システム環境設定」で行う\footnote{\protect\url{file:///System/Library/PreferencePanes/Battery.prefPane}}。
+
+			\subsubsection{Time\ MachineにHDDを追加}
+				「システム環境設定」で行う\footnote{\protect\url{file:///System/Library/PreferencePanes/TimeMachine.prefPane}}。
+
+	\clearpage
+
+	\section{ソフトウェアの設定}
+		\subsection{CUIでの設定}
+			\subsubsection{設定ファイルが存在するもの}
+				設定ファイルが存在するソフトウェアの設定については，\texttt{scripts}フォルダの中にある\texttt{copy-preferences.sh}を実行すれば終了する。
+
+				なお，以下に主要な設定ファイルの内容を示す(GitHub公開版PDFでは削除されている)ので，手入力をしてもよい。
+
+				% \lstinputlisting[caption=\~/.vimrc]{~/.vimrc}
+				% \lstinputlisting[caption=\~/.config/nvim/init.vim]{~/.config/nvim/init.vim}
+				% \lstinputlisting[caption=\~/.config/fish/config.fish]{~/.config/fish/config.fish}
+				% \lstinputlisting[caption=\~/.ssh/config]{~/.ssh/config}
+
+				% \begin{lstlisting}[caption=\~/.gnupg/]
+				%\end{lstlisting}
+
+			\subsubsection{設定ファイルが存在しないもの}
+				特に記述することはない。
+				
+		\subsection{GUIでの設定}
+			思い当たることがあれば改めてここに記述する。
+
+	\clearpage
+	
+	\section{Intel\ Macからのデータコピー}
+		\subsection{IP\ over\ Thunderbolt}
+			移行元のMacBook\ Pro(2016)と移行先のMacBook\ Pro(2020,\ M1)はどちらもThunderbolt\ 3をサポートしている。
+
+			Apple\ Thunderbolt\ 3ケーブルをこの2台のMacBook\ Proに接続すると，IP\ over\ Thunderboltによるファイル転送が使用できるようになる\footnote{詳しくは\protect\url{https://support.apple.com/ja-jp/guide/mac-help/mchld53dd2f5/mac}を参照すること。DHCPによる設定がうまくいかない場合，システム環境設定のネットワークパネル(\protect\url{file:///System/Library/PreferencePanes/Network.prefPane})内にある「Thunderboltブリッジ」の設定を手動で変更する必要がある。}。
+
+		\subsection{\texttt{rsync}}
+			\texttt{rsync}を使用して，以下のディレクトリを\texttt{Amethyst.local}にコピーする(もっとも，上の2つについては，HDDに保存してあるtarアーカイブを利用したほうが速いかもしれない)。
+
+			\begin{itemize}
+				\item{\texttt{\$HOME/iTunes}}
+				\item{\texttt{\$HOME/Dictionaries}}
+				\item{\texttt{\$HOME/Pictures/Wallpaper}}
+			\end{itemize}
+	
+			\begin{lstlisting}[language=bash]
+	# これで本当にうまくいくかはわからない
+	# ~/.ssh/config にホストを追加しておく必要がありそう
+	rsync -avP6 Jasmine.local:~/iTunes ~/
+	rsync -avP6 Jasmine.local:~/Dictionaries ~/
+	rsync -avP6 Jasmine.local:~/Pictures/Wallpaper ~/Pictures
+			\end{lstlisting}
+
+	\clearpage
+
+\end{document}
